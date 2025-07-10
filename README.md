@@ -1,6 +1,10 @@
 # پنل معاملاتی هیبرید: یک داشبورد حرفه‌ای برای متاتریدر ۵
 
-![تصویری از داشبورد]()
+![تصویری از داشبورد](https://github.com/daedalusfx/advance-trade-management/blob/main/screenshouts/darkmoden.png
+)
+![تصویری از داشبورد](https://github.com/daedalusfx/advance-trade-management/blob/main/screenshouts/darkmodfa.png)
+![تصویری از داشبورد](https://github.com/daedalusfx/advance-trade-management/blob/main/screenshouts/lightmod.png)
+
 
 یک ابزار مدیریت معامله پیشرفته که قدرت و سرعت اجرای MQL5 را با انعطاف‌پذیری و زیبایی یک رابط کاربری مدرن نوشته‌شده با پایتون ترکیب می‌کند. این پروژه به شما اجازه می‌دهد تا معاملات خود را از طریق یک داشبورد دسکتاپ زیبا و تعاملی، به صورت زنده نظارت و مدیریت کنید.
 
