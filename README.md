@@ -1,4 +1,10 @@
-# Hybrid Trading Panel: A Professional Dashboard for MetaTrader 5
+# 🧠 Advanced Hybrid Trade Management (ATM)
+
+> 🌐  Languages | زبان‌ها: [English](README.md) | [فارسی](README_fa.md)
+
+🎯 **MetaTrader Expert Advisor** for managing open trades 
+
+---
 
 ![Dashboard Screenshot](https://github.com/daedalusfx/advance-trade-management/blob/main/screenshouts/darkmoden.png
 )
