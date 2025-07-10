@@ -99,7 +99,7 @@ pip install PyQt6 websockets requests
 ```
 4. Run the dashboard:
 ```bash
-python main_app.py
+python main.py
 ```
 
 Your dashboard should now open and display live data from MetaTrader.
@@ -145,7 +145,7 @@ This version uses a stable architecture based on **Short Polling HTTP**, where t
 This version focuses on connection stability, data corruption prevention, and adding full transaction management logic.
 
 ---
-### Expert Advisor (`api.c`)
+### Expert Advisor (`core.mql5`)
 
 #### Improvements (Changed)
 - **Non-blocking data transmission architecture:** To solve the problem of web request interference and data corruption, an internal queue mechanism (`g_data_queue`) and status flag (`g_is_sending`) were implemented. The Expert Advisor now queues data and sends it in a controlled manner.
