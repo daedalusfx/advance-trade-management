@@ -1,0 +1,341 @@
+//+------------------------------------------------------------------+
+//|                                     hybrid_expert_final.mq5 |
+//|        Final Hybrid Architecture with Full Functionality        |
+//|                                   
+//+------------------------------------------------------------------+
+
+
+#property copyright "GPL3"
+#property version   "14.0" // Final Stable Version
+#property strict
+
+#include <Trade\Trade.mqh>
+
+//--- آدرس‌های سرور
+string server_url_data = "http://127.0.0.1:5000/data";
+string server_url_command = "http://127.0.0.1:5000/get-command";
+string server_url_settings = "http://127.0.0.1:5000/get-settings";
+
+//--- ساختار قوانین
+struct TTradeRule
+{
+    double triggerPercent;
+    bool   moveToBE;
+    double closePercent;
+    bool   auto_trading_enabled;
+};
+
+//--- متغیرهای گلوبال
+CTrade      trade;
+TTradeRule  g_tradeRule;
+ulong       g_appliedRulesTickets[];
+ulong       g_slTickets[];
+double      g_slValues[];
+ulong       g_atmEnabledTickets[];
+uint        g_timer_counter = 0;
+string      SL_Backup_File;
+string      g_data_queue[];      // صف برای نگهداری آخرین داده JSON
+bool        g_is_sending = false; // پرچم برای جلوگیری از ارسال همزمان
+
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+    Print("DEBUG: OnInit - Expert Initializing...");
+    SL_Backup_File = MQLInfoString(MQL_PROGRAM_NAME) + "_" + (string)ChartID() + "_SL_Backup.dat";
+    FetchSettings();
+    LoadOriginalSLs();
+    EventSetTimer(1);
+    Print("DEBUG: OnInit - Timer set. Initialization complete.");
+    return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+    Print("DEBUG: OnDeinit - Expert Deinitializing...");
+    SaveOriginalSLs();
+    EventKillTimer();
+}
+
+//+------------------------------------------------------------------+
+//| Timer function (New & Stable Architecture)                       |
+//+------------------------------------------------------------------+
+void OnTimer()
+{
+    g_timer_counter++;
+
+    // وظیفه 1: همیشه آخرین وضعیت را تولید و در صف قرار بده
+    GenerateAndQueueState();
+
+    // وظیفه 2: ارسال داده از صف، تنها اگر در حال ارسال نیستیم
+    if(!g_is_sending && ArraySize(g_data_queue) > 0)
+    {
+        string payload_to_send = g_data_queue[0];
+        ArrayRemove(g_data_queue, 0, 1);
+        SendFromQueue(payload_to_send);
+    }
+
+    // وظیفه 3: پردازش دستورات و تنظیمات دریافتی
+    if(g_timer_counter % 2 == 0)
+    {
+        FetchAndProcessCommands();
+    }
+    if(g_timer_counter % 5 == 0)
+    {
+        FetchSettings();
+    }
+    
+    // وظیفه 4: مدیریت خودکار معاملات
+    ProcessAutoManagement();
+}
+
+//+------------------------------------------------------------------+
+//| Generates JSON and puts it in the queue                        |
+//+------------------------------------------------------------------+
+void GenerateAndQueueState()
+{
+    double total_pl = 0;
+    string trades_json_array = "";
+    int trade_count = 0;
+
+    for(int i = PositionsTotal() - 1; i >= 0; i--)
+    {
+        ulong ticket = PositionGetTicket(i);
+        if(!PositionSelectByTicket(ticket)) continue;
+        if(trade_count > 0) { trades_json_array += ","; }
+        string type = (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY) ? "Buy" : "Sell";
+        bool atm_enabled = IsAtmEnabled(ticket);
+        string single_trade_json = StringFormat("{\"ticket\":%s,\"symbol\":\"%s\",\"type\":\"%s\",\"volume\":%.2f,\"profit\":%.2f,\"atm_enabled\":%s}",
+                                                (string)ticket, PositionGetString(POSITION_SYMBOL), type, PositionGetDouble(POSITION_VOLUME),
+                                                PositionGetDouble(POSITION_PROFIT), atm_enabled ? "true" : "false");
+        trades_json_array += single_trade_json;
+        total_pl += PositionGetDouble(POSITION_PROFIT) + PositionGetDouble(POSITION_SWAP);
+        trade_count++;
+    }
+
+    string payload = StringFormat("{\"symbol\":\"%s\",\"total_pl\":%.2f,\"trades\":[%s]}", _Symbol, total_pl, trades_json_array);
+
+    // قرار دادن آخرین داده در صف (جایگزین داده قبلی می‌شود)
+    ArrayFree(g_data_queue);
+    ArrayResize(g_data_queue, 1);
+    g_data_queue[0] = payload;
+}
+
+//+------------------------------------------------------------------+
+//| Sends a single payload from the queue safely (FINAL FIX)         |
+//+------------------------------------------------------------------+
+void SendFromQueue(const string &payload)
+{
+    if(g_is_sending) return; 
+
+    g_is_sending = true; // --- قفل کردن ارسال ---
+
+    char post_data[]; ArrayFree(post_data);
+    char result[];    ArrayFree(result);
+    string result_headers = "";
+
+    // -- START: THE FINAL FIX for Content-Length mismatch --
+    // این بخش، مشکل اصلی را حل می‌کند
+    int len = StringToCharArray(payload, post_data, 0, WHOLE_ARRAY, CP_UTF8);
+    if (len > 0 && post_data[len - 1] == '\0')
+    {
+        ArrayResize(post_data, len - 1);
+    }
+    // -- END: THE FINAL FIX --
+
+    int res = WebRequest("POST", server_url_data, "Content-Type: application/json; charset=utf-8", 500, post_data, result, result_headers);
+    if(res == -1)
+    {
+        Print("ERROR: WebRequest failed with code ", GetLastError(), " for URL: ", server_url_data);
+    }
+
+    g_is_sending = false; // --- آزاد کردن قفل ---
+}
+
+//+------------------------------------------------------------------+
+//| Fetches and processes commands from the server                   |
+//+------------------------------------------------------------------+
+void FetchAndProcessCommands()
+{
+    char result[]; ArrayFree(result);
+    char post_data[]; ArrayFree(post_data);
+    string result_headers = "";
+    int res = WebRequest("GET", server_url_command, "", 500, post_data, result, result_headers);
+    if(res == 200)
+    {
+        string response = CharArrayToString(result);
+        if(StringFind(response, "no command") < 0 && StringLen(response) > 2)
+        {
+            Print("DEBUG: Command received from server: ", response);
+            string action = GetJsonString(response, "action");
+            ulong ticket = GetJsonUlong(response, "ticket");
+
+            if(action == "close" && ticket != 0) {
+                Print("DEBUG: Executing CLOSE command for ticket #", ticket);
+                trade.PositionClose(ticket);
+            }
+            else if(action == "breakeven" && ticket != 0)
+            {
+                if(PositionSelectByTicket(ticket) && PositionGetDouble(POSITION_PROFIT) > 0) {
+                    Print("DEBUG: Executing BREAKEVEN command for ticket #", ticket);
+                    trade.PositionModify(ticket, PositionGetDouble(POSITION_PRICE_OPEN), PositionGetDouble(POSITION_TP));
+                }
+            }
+            else if(action == "close_all")
+            {
+                Print("DEBUG: Executing CLOSE_ALL command.");
+                for(int i = PositionsTotal() - 1; i >= 0; i--)
+                    if(PositionSelectByTicket(PositionGetTicket(i)))
+                        trade.PositionClose(PositionGetTicket(i));
+            }
+            else if(action == "close_profits")
+            {
+                Print("DEBUG: Executing CLOSE_PROFITS command.");
+                for(int i = PositionsTotal() - 1; i >= 0; i--)
+                    if(PositionSelectByTicket(PositionGetTicket(i)) && PositionGetDouble(POSITION_PROFIT) > 0)
+                        trade.PositionClose(PositionGetTicket(i));
+            }
+            else if(action == "close_losses")
+            {
+                Print("DEBUG: Executing CLOSE_LOSSES command.");
+                for(int i = PositionsTotal() - 1; i >= 0; i--)
+                    if(PositionSelectByTicket(PositionGetTicket(i)) && PositionGetDouble(POSITION_PROFIT) < 0)
+                        trade.PositionClose(PositionGetTicket(i));
+            }
+            else if(action == "breakeven_profits")
+            {
+                 Print("DEBUG: Executing BREAKEVEN_PROFITS command.");
+                for(int i = PositionsTotal() - 1; i >= 0; i--)
+                    if(PositionSelectByTicket(PositionGetTicket(i)) && PositionGetDouble(POSITION_PROFIT) > 0)
+                        trade.PositionModify(PositionGetTicket(i), PositionGetDouble(POSITION_PRICE_OPEN), PositionGetDouble(POSITION_TP));
+            }
+            else if(action == "toggle_atm_trade")
+            {
+                bool atm_state = GetJsonBool(response, "atm_trade_state");
+                Print("DEBUG: Executing TOGGLE_ATM command for ticket #", ticket, " to state: ", (string)atm_state);
+                ToggleAtmForTicket(ticket, atm_state);
+            }
+        }
+    }
+}
+
+//+------------------------------------------------------------------+
+//| Main logic for automated trade management                        |
+//+------------------------------------------------------------------+
+void ProcessAutoManagement()
+{
+    if(!g_tradeRule.auto_trading_enabled || g_tradeRule.triggerPercent <= 0) return;
+
+    for(int i = PositionsTotal() - 1; i >= 0; i--)
+    {
+        ulong ticket = PositionGetTicket(i);
+        if(!PositionSelectByTicket(ticket) || PositionGetString(POSITION_SYMBOL) != _Symbol || WasRuleApplied(ticket) || !IsAtmEnabled(ticket)) continue;
+        
+        double tp = PositionGetDouble(POSITION_TP);
+        if(tp == 0.0) continue; 
+        double entry = PositionGetDouble(POSITION_PRICE_OPEN);
+        double sl = PositionGetDouble(POSITION_SL);
+        double profitTargetDist = MathAbs(tp - entry);
+        if(profitTargetDist <= _Point * 5) continue;
+        double triggerDist = profitTargetDist * (g_tradeRule.triggerPercent / 100.0);
+        bool isTriggered = false;
+        if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY && SymbolInfoDouble(_Symbol, SYMBOL_BID) >= entry + triggerDist) isTriggered = true;
+        if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL && SymbolInfoDouble(_Symbol, SYMBOL_ASK) <= entry - triggerDist) isTriggered = true;
+        if(isTriggered)
+        {
+            Print("DEBUG: Auto-manage trigger met for ticket #", ticket);
+            bool success = true;
+            if(g_tradeRule.closePercent > 0 && g_tradeRule.closePercent < 100)
+            {
+               double vol = PositionGetDouble(POSITION_VOLUME);
+               double step = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
+               int digits = VolumeDigits(_Symbol);
+               double idealVolToClose = vol * (g_tradeRule.closePercent / 100.0);
+               double volToClose = floor(idealVolToClose / step) * step;
+               volToClose = NormalizeDouble(volToClose, digits);
+               if(volToClose >= SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN))
+                   if(!trade.PositionClosePartial(ticket, volToClose))
+                   { Print("ERROR: Failed to partial close #",ticket," E:",GetLastError()); success = false; }
+            }
+            if(success && g_tradeRule.moveToBE && PositionGetDouble(POSITION_SL) != entry)
+            {
+                StoreOriginalSL(ticket, sl);
+                if(!trade.PositionModify(ticket, entry, tp))
+                { Print("ERROR: Failed to move SL to BE for #",ticket," E:",GetLastError()); success = false; }
+            }
+            if(success) MarkRuleAsApplied(ticket);
+        }
+    }
+}
+
+//+------------------------------------------------------------------+
+//| Helper functions for ATM state per ticket                        |
+//+------------------------------------------------------------------+
+bool IsAtmEnabled(ulong ticket)
+{
+    for(int i=0; i<ArraySize(g_atmEnabledTickets); i++)
+        if(g_atmEnabledTickets[i] == ticket) return true;
+    return false;
+}
+
+void ToggleAtmForTicket(ulong ticket, bool enable)
+{
+    bool exists = IsAtmEnabled(ticket);
+    if(enable && !exists)
+    {
+        int size = ArraySize(g_atmEnabledTickets);
+        ArrayResize(g_atmEnabledTickets, size + 1);
+        g_atmEnabledTickets[size] = ticket;
+        Print("DEBUG: ATM enabled for ticket #", ticket);
+    }
+    else if(!enable && exists)
+    {
+        for(int i=0; i<ArraySize(g_atmEnabledTickets); i++)
+        {
+            if(g_atmEnabledTickets[i] == ticket)
+            {
+                ArrayRemove(g_atmEnabledTickets, i, 1);
+                Print("DEBUG: ATM disabled for ticket #", ticket);
+                break;
+            }
+        }
+    }
+}
+
+//+------------------------------------------------------------------+
+//| Fetches the latest trade rules from the server                   |
+//+------------------------------------------------------------------+
+void FetchSettings()
+{
+    char result[]; ArrayFree(result);
+    char post_data[]; ArrayFree(post_data);
+    string result_headers = "";
+    int res = WebRequest("GET", server_url_settings, "", 500, post_data, result, result_headers);
+    if(res == 200)
+    {
+        string json_response = CharArrayToString(result);
+        g_tradeRule.triggerPercent = GetJsonDouble(json_response, "triggerPercent");
+        g_tradeRule.moveToBE = GetJsonBool(json_response, "moveToBE");
+        g_tradeRule.closePercent = GetJsonDouble(json_response, "closePercent");
+        g_tradeRule.auto_trading_enabled = GetJsonBool(json_response, "auto_trading_enabled");
+    }
+}
+
+//+------------------------------------------------------------------+
+//| Helper functions for state management & JSON parsing             |
+//+------------------------------------------------------------------+
+bool WasRuleApplied(ulong ticket){for(int i=0;i<ArraySize(g_appliedRulesTickets);i++)if(g_appliedRulesTickets[i]==ticket)return true;return false;}
+void MarkRuleAsApplied(ulong ticket){if(WasRuleApplied(ticket))return;int size=ArraySize(g_appliedRulesTickets);ArrayResize(g_appliedRulesTickets,size+1);g_appliedRulesTickets[size]=ticket;}
+int FindSLIndex(ulong ticket){for(int i=0;i<ArraySize(g_slTickets);i++)if(g_slTickets[i]==ticket)return i;return -1;}
+void StoreOriginalSL(ulong ticket,double sl_value){if(sl_value==0.0)return;int index=FindSLIndex(ticket);if(index==-1){int size=ArraySize(g_slTickets);ArrayResize(g_slTickets,size+1);ArrayResize(g_slValues,size+1);g_slTickets[size]=ticket;g_slValues[size]=sl_value;}else{g_slValues[index]=sl_value;}SaveOriginalSLs();}
+void SaveOriginalSLs(){int handle=FileOpen(SL_Backup_File,FILE_WRITE|FILE_BIN);if(handle==INVALID_HANDLE)return;int count=ArraySize(g_slTickets);FileWriteInteger(handle,count);if(count>0){FileWriteArray(handle,g_slTickets,0,count);FileWriteArray(handle,g_slValues,0,count);}FileClose(handle);}
+void LoadOriginalSLs(){ArrayFree(g_slTickets);ArrayFree(g_slValues);int handle=FileOpen(SL_Backup_File,FILE_READ|FILE_BIN);if(handle==INVALID_HANDLE)return;int count=FileReadInteger(handle);if(count>0){ArrayResize(g_slTickets,count);ArrayResize(g_slValues,count);FileReadArray(handle,g_slTickets,0,count);FileReadArray(handle,g_slValues,0,count);}FileClose(handle);}
+int VolumeDigits(string symbol){double step=SymbolInfoDouble(symbol,SYMBOL_VOLUME_STEP);if(step==1.0)return 0;string step_str=DoubleToString(step);int pos=StringFind(step_str,".");if(pos<0)return 0;return StringLen(step_str)-pos-1;}
+string GetJsonString(string json,string key){string sk="\""+key+"\":\"";int sp=StringFind(json,sk);if(sp<0)return"";sp+=StringLen(sk);int ep=StringFind(json,"\"",sp);if(ep<0)return"";return StringSubstr(json,sp,ep-sp);}
+ulong GetJsonUlong(string json, string key){string sk="\""+key+"\":";int sp=StringFind(json,sk);if(sp<0)return 0;sp+=StringLen(sk);int ep=StringFind(json,",",sp);if(ep<0)ep=StringFind(json,"}",sp);if(ep<0)return 0;return(ulong)StringToInteger(StringSubstr(json,sp,ep-sp));}
+double GetJsonDouble(string json,string key){string sk="\""+key+"\":";int sp=StringFind(json,sk);if(sp<0)return 0.0;sp+=StringLen(sk);int ep=StringFind(json,",",sp);if(ep<0)ep=StringFind(json,"}",sp);if(ep<0)return 0.0;return StringToDouble(StringSubstr(json,sp,ep-sp));}
+bool GetJsonBool(string json,string key){string sk="\""+key+"\":";int sp=StringFind(json,sk);if(sp<0)return false;sp+=StringLen(sk);int ep=StringFind(json,",",sp);if(ep<0)ep=StringFind(json,"}",sp);if(ep<0)return false;string v=StringSubstr(json,sp,ep-sp);StringTrimRight(v);StringTrimLeft(v);return(v=="true");}

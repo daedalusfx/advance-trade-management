@@ -1,0 +1,21 @@
+/* FILE: light.qss */
+QWidget { font-family: Vazirmatn; font-size: 14px; color: #111827; }
+QMainWindow, QDialog { background-color: #f9fafb; }
+QTableView { background-color: #ffffff; border: 1px solid #e5e7eb; gridline-color: #f3f4f6; }
+QHeaderView::section { background-color: #f3f4f6; color: #374151; padding: 8px; border: none; font-weight: bold; }
+QPushButton { background-color: #4f46e5; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; }
+QPushButton:hover { background-color: #6366f1; }
+QPushButton:disabled { background-color: #d1d5db; }
+QPushButton#SettingsBtn, QPushButton#ThemeBtn { padding: 8px 12px; }
+QPushButton#SaveBtn { background-color: #16a34a; }
+QPushButton#CloseBtn { background-color: #ef4444; padding: 4px 10px; }
+QPushButton#CloseBtn:hover { background-color: #dc2626; }
+QPushButton#BEBtn { background-color: #3b82f6; padding: 4px 10px; }
+QPushButton#BEBtn:hover { background-color: #60a5fa; }
+QPushButton#AtmOn { background-color: #16a34a; }
+QPushButton#AtmOff { background-color: #6b7280; }
+QLabel#ProfitLabel { color: #16a34a; font-weight: bold; }
+QLabel#LossLabel { color: #dc2626; font-weight: bold; }
+QWidget#Header, QWidget#Footer { background-color: #f3f4f6; border-bottom: 1px solid #e5e7eb; padding: 8px; }
+QWidget#Footer { border-top: 1px solid #e5e7eb; border-bottom: none; }
+QLineEdit { background-color: #ffffff; border: 1px solid #d1d5db; border-radius: 5px; padding: 5px; }
