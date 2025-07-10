@@ -171,7 +171,7 @@ This version focuses on connection stability, data corruption prevention, and ad
 - **Settings Management:** An `endpoint` has been added to receive and update the settings of the automated management via the dashboard.
 
 ---
-### Python Dashboard (`app.py`)
+### Python Dashboard (`app_logic.py`)
 
 *(This log is based on your previous files and is fully compatible with this version of the Expert Advisor and the server)*
 
