@@ -5,7 +5,7 @@ from app_logic import MainWindow
 
 if __name__ == "__main__":
     """
-    نقطه شروع اصلی برنامه
+The main starting point of the program
     """
     app = QApplication(sys.argv)
     window = MainWindow()
