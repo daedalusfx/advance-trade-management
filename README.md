@@ -1,181 +1,178 @@
-# پنل معاملاتی هیبرید: یک داشبورد حرفه‌ای برای متاتریدر ۵
+# Hybrid Trading Panel: A Professional Dashboard for MetaTrader 5
 
-![تصویری از داشبورد](https://github.com/daedalusfx/advance-trade-management/blob/main/screenshouts/darkmoden.png
+![Dashboard Screenshot](https://github.com/daedalusfx/advance-trade-management/blob/main/screenshouts/darkmoden.png
 )
-![تصویری از داشبورد](https://github.com/daedalusfx/advance-trade-management/blob/main/screenshouts/darkmodfa.png)
-![تصویری از داشبورد](https://github.com/daedalusfx/advance-trade-management/blob/main/screenshouts/lightmod.png)
+![Dashboard Screenshot](https://github.com/daedalusfx/advance-trade-management/blob/main/screenshouts/darkmodfa.png)
+![Dashboard Screenshot](https://github.com/daedalusfx/advance-trade-management/blob/main/screenshouts/lightmod.png)
 
-
-یک ابزار مدیریت معامله پیشرفته که قدرت و سرعت اجرای MQL5 را با انعطاف‌پذیری و زیبایی یک رابط کاربری مدرن نوشته‌شده با پایتون ترکیب می‌کند. این پروژه به شما اجازه می‌دهد تا معاملات خود را از طریق یک داشبورد دسکتاپ زیبا و تعاملی، به صورت زنده نظارت و مدیریت کنید.
-
----
-
-## ✨ ویژگی‌های کلیدی
-
-* **معماری ترکیبی (Hybrid Architecture):** منطق حساس به زمان در MQL5 برای حداکثر سرعت اجرا، و رابط کاربری قدرتمند در پایتون برای بهترین تجربه کاربری.
-* **داشبورد زنده:** مشاهده تمام معاملات باز، سود و زیان لحظه‌ای و وضعیت کلی حساب در یک رابط کاربری تمیز و مینیمال.
-* **مدیریت خودکار معامله:**
-    * **ریسک-فری خودکار (Auto Breakeven):** انتقال اتوماتیک حد ضرر به نقطه ورود بر اساس درصد سود هدف.
-    * **خروج بخشی از معامله (Auto Partial Exit):** بستن درصدی از حجم معامله برای ذخیره سود.
-* **کنترل کامل دستی:** ارسال دستورات فوری (بستن معامله، بستن همه، بستن سودها/ضررها) از داشبورد پایتون به متاتریدر.
-* **تنظیمات پویا:** تغییر و ذخیره قوانین مدیریت خودکار به صورت زنده از طریق داشبورد، بدون نیاز به کامپایل مجدد اکسپرت.
-* **ارتباط لحظه‌ای:** استفاده از وب‌سوکت برای آپدیت‌های آنی و بدون تاخیر در داشبورد.
+An advanced trade management tool that combines the power and speed of MQL5 execution with the flexibility and beauty of a modern user interface written in Python. This project allows you to monitor and manage your trades live via a beautiful and interactive desktop dashboard.
 
 ---
 
-## 🏗️ معماری سیستم
+## ✨ Key Features
 
-این پروژه از یک معماری سه لایه کلاینت-سرور برای دستیابی به بهترین عملکرد و انعطاف‌پذیری استفاده می‌کند:
-
-یک.  **اکسپرت MQL5 (اپراتور هوشمند):**
-    * روی متاتریدر ۵ اجرا می‌شود.
-    * مسئول اجرای سریع و مستقیم دستورات معاملاتی است.
-    * منطق حساس به زمان (مانند `ProcessAutoManagement`) را در خود دارد.
-    * داده‌های خام حساب را به سرور ارسال کرده و قوانین و دستورات را از آن دریافت می‌کند.
-
-دو.  **سرور Node.js (پل ارتباطی):**
-    * یک سرور سبک و سریع که به عنوان واسطه عمل می‌کند.
-    * داده‌های خام را از MQL5 دریافت کرده، به فرمت JSON تبدیل می‌کند و از طریق وب‌سوکت برای داشبورد پایتون پخش می‌کند.
-    * دستورات و تنظیمات را از داشبورد پایتون دریافت کرده و برای اکسپرت MQL5 صف می‌کند.
-
-سه.  **داشبورد پایتون (مرکز فرماندهی):**
-    * یک اپلیکیشن دسکتاپ که با PyQt6 ساخته شده است.
-    * رابط کاربری اصلی شما برای نظارت و مدیریت است.
-    * به سرور وب‌سوکت متصل شده و داده‌ها را به صورت زنده نمایش می‌دهد.
-    * دستورات و تنظیمات را به سرور ارسال می‌کند.
-
-
-[داشبورد پایتون (UI)] <--- (WebSocket) ---> [سرور Node.js (API)] <--- (HTTP) ---> [اکسپرت MQL5 (Engine)]
-
+* **Hybrid Architecture:** Time-sensitive logic in MQL5 for maximum execution speed, and a powerful Python interface for the best user experience.
+* **Live Dashboard:** View all open trades, instant profit and loss, and overall account status in a clean and minimal interface.
+* **Auto Trade Management:**
+* **Auto Breakeven:** Automatically move the stop-loss to the entry point based on the target profit percentage.
+* **Auto Partial Exit:** Close a percentage of the trade volume to lock in profit.
+* **Full Manual Control:** Send instant commands (Close Trade, Close All, Close Profit/Loss) from the Python dashboard to MetaTrader.
+* **Dynamic Settings:** Change and save auto management rules live from the dashboard, without having to recompile the Expert Advisor.
+* **Instantaneous communication:** Using websockets for instant and lag-free dashboard updates.
 
 ---
 
-## 🛠️ نصب و راه‌اندازی
+## 🏗️ System architecture
 
-برای اجرای این سیستم، باید هر سه بخش را به صورت جداگانه راه‌اندازی کنید.
+The project uses a three-tier client-server architecture to achieve the best performance and flexibility:
 
-### پیش‌نیازها
+1. **MQL5 Expert Advisor (Smart Operator):**
+* Runs on MetaTrader 5.
+* Responsible for fast and direct execution of trading orders.
+* Contains time-sensitive logic (such as `ProcessAutoManagement`).
+* Sends raw account data to the server and receives rules and commands from it.
 
-* نرم‌افزار **MetaTrader 5**
-* **Node.js** (نسخه 14 یا بالاتر)
-* **Python** (نسخه 3.8 یا بالاتر)
+2. **Node.js server (communication bridge):**
+* A lightweight and fast server that acts as an intermediary.
+* Receives raw data from MQL5, converts it to JSON format, and broadcasts it to the Python dashboard via websockets.
+* Receives commands and settings from the Python Dashboard and queues them for the MQL5 Expert Advisor.
 
-### مرحله ۱: راه‌اندازی سرور Node.js
+Three. **Python Dashboard (Command Center):**
+* A desktop application built with PyQt6.
+* Is your main user interface for monitoring and management.
+* Connects to the websocket server and displays live data.
+* Sends commands and settings to the server.
 
-1.  وارد پوشه `server` شوید.
-2.  پکیج‌های مورد نیاز را با `npm` نصب کنید:
-    ```bash
-    npm install express ws
-    ```
-3.  سرور را اجرا کنید:
-    ```bash
-    node server.js
-    ```
-    شما باید پیام `🚀 سرور نهایی در حال اجرا است...` را ببینید.
-
-### مرحله ۲: راه‌اندازی اکسپرت MQL5
-
-1.  فایل `hybrid_expert_final.mq5` را در پوشه `MQL5/Experts` در محل نصب متاتریدر خود کپی کنید.
-2.  متاتریدر را باز کرده و از منوی `Tools -> Options` به تب `Expert Advisors` بروید.
-3.  تیک گزینه **`Allow WebRequest for listed URL`** را فعال کنید.
-4.  آدرس `http://127.0.0.1:5000` را به لیست آدرس‌های مجاز اضافه کنید.
-5.  اکسپرت را در MetaEditor کامپایل کرده و آن را روی چارت مورد نظر خود اجرا کنید.
-
-### مرحله ۳: راه‌اندازی داشبورد پایتون
-
-1.  وارد پوشه `dashboard` شوید.
-2.  پیشنهاد می‌شود یک محیط مجازی (virtual environment) ایجاد کنید:
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # در لینوکس یا macOS
-    venv\Scripts\activate  # در ویندوز
-    ```
-3.  پکیج‌های مورد نیاز را با `pip` نصب کنید:
-    ```bash
-    pip install PyQt6 websockets requests
-    ```
-4.  داشبورد را اجرا کنید:
-    ```bash
-    python main_app.py
-    ```
-
-حالا باید داشبورد شما باز شده و داده‌های زنده را از متاتریدر نمایش دهد.
+[Python Dashboard (UI)] <--- (WebSocket) ---> [Node.js Server (API)] <--- (HTTP) ---> [MQL5 Expert Advisor (Engine)]
 
 ---
 
-## 🚀 نحوه استفاده
+## 🛠️ Installation and Setup
 
-* **نظارت:** به سادگی معاملات باز و سود و زیان کل خود را مشاهده کنید.
-* **مدیریت دستی:** از دکمه‌های "بستن"، "بستن همه"، "بستن سودها/ضررها" برای مدیریت سریع معاملات استفاده کنید.
-* **مدیریت خودکار:**
-    1.  روی دکمه **"تنظیمات"** کلیک کنید.
-    2.  قانون مدیریت خودکار خود (درصد تریگر، ریسک-فری و بستن بخشی از حجم) را تعریف و ذخیره کنید.
-    3.  مطمئن شوید که دکمه **"خودکار: روشن"** در هدر داشبورد فعال است.
-    4.  اکسپرت به صورت خودکار معاملات شما را بر اساس قوانین تعریف‌شده مدیریت خواهد کرد.
+To run this system, you need to setup all three parts separately.
+
+### Prerequisites
+
+* **MetaTrader 5** software
+* **Node.js** (version 14 or higher)
+* **Python** (version 3.8 or higher)
+
+### Step 1: Setting up the Node.js server
+
+1. Go to the ``server`` folder.
+2. Install the required packages with ``npm``:
+```bash
+npm install express ws
+```
+3. Run the server:
+```bash
+node server.js
+```
+You should see the message `🚀 Final server is running...`.
+
+### Step 2: Setting up the MQL5 Expert Advisor
+
+1. Copy the ``hybrid_expert_final.mq5` file to the ``MQL5/Experts` folder in your MetaTrader installation.
+2. Open MetaTrader and go to the ``Expert Advisors`` tab from the ``Tools -> Options`` menu.
+3. Check the box **`Allow WebRequest for listed URL`**.
+4. Add the address `http://127.0.0.1:5000` to the list of allowed addresses.
+5. Compile the Expert Advisor in MetaEditor and run it on the chart of your choice.
+
+### Step 3: Setting up the Python Dashboard
+
+1. Go to the `dashboard` folder.
+2. It is recommended to create a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate # on Linux or macOS
+venv\Scripts\activate # on Windows
+```
+3. Install the required packages with `pip`:
+```bash
+pip install PyQt6 websockets requests
+```
+4. Run the dashboard:
+```bash
+python main_app.py
+```
+
+Your dashboard should now open and display live data from MetaTrader.
+
+---
+
+## 🚀 How to use
+
+* **Monitoring:** Easily view your open trades and total profit and loss.
+* **Manual management:** Use the "Close", "Close All", "Close Profit/Loss" buttons to quickly manage your trades.
+* **Automatic management:**
+1. Click the **"Settings"** button.
+2. Define and save your auto-management rules (trigger percentage, risk-free and partial volume closing).
+3. Make sure that the **"Auto: On"** button in the dashboard header is enabled.
+4. The Expert Advisor will automatically manage your trades based on the defined rules.
 
 ---
 
-## 📜 مجوز (License)
+## 📜 License
 
-این پروژه تحت مجوز **GNU General Public License v3.0** منتشر شده است. برای اطلاعات بیشتر فایل `LICENSE` را مطالعه کنید.
-
----
-
-## 🤝 مشارکت و ایده‌های آینده
-
-مشارکت شما در توسعه این پروژه باعث افتخار ماست. شما می‌توانید از طریق Pull Request یا ثبت Issue در این پروژه مشارکت کنید.
-
-چند ایده برای توسعه آینده:
-* افزودن قابلیت تریلینگ استاپ پیشرفته.
-* اضافه کردن داشبورد آمار و عملکرد حساب.
-* ساخت نسخه وب یا موبایل برای داشبورد.
-* افزودن قابلیت مدیریت ریسک برای حساب‌های پراپ.
-
-
-## لاگ تغییرات (Changelog)
-این نسخه از یک معماری پایدار مبتنی بر **Short Polling HTTP** استفاده می‌کند که در آن اکسپرت با یک مکانیزم صف داخلی، از تداخل در ارسال داده‌ها جلوگیری می‌کند.
+This project is released under the **GNU General Public License v3.0**. For more information, read the `LICENSE` file.
 
 ---
 
-### [نسخه 2.5.0] - معماری پایدار Polling با مدیریت وضعیت - (تاریخ فعلی)
+## 🤝 Contributions and Future Ideas
 
-این نسخه بر پایداری ارتباط، جلوگیری از خرابی داده‌ها و افزودن منطق کامل مدیریت معاملات تمرکز دارد.
+We are honored by your participation in the development of this project. You can contribute to this project by submitting a Pull Request or filing an Issue.
 
----
-### اکسپرت (`api.c`)
+Some ideas for future development:
+* Add advanced Trailing Stop functionality.
+* Add an account statistics and performance dashboard.
+* Build
+Web or mobile version for dashboard.
+* Added risk management functionality for prop accounts.
 
-#### بهبودها (Changed)
-- **معماری ارسال داده غیرمسدودکننده:** برای حل مشکل تداخل درخواست‌های وب و خرابی داده‌ها، یک مکانیزم صف داخلی (`g_data_queue`) و پرچم وضعیت (`g_is_sending`) پیاده‌سازی شد. اکسپرت اکنون داده‌ها را در یک صف قرار داده و به صورت کنترل‌شده ارسال می‌کند.
-- **مدیریت کامل وضعیت ATM:** منطق کامل برای فعال/غیرفعال کردن مدیریت خودکار برای هر معامله به صورت مجزا (`ToggleAtmForTicket`) پیاده‌سازی شد.
-- **انتقال به فرمت JSON:** فرمت تبادل داده با سرور به طور کامل به JSON استاندارد تغییر یافت.
-
-#### ویژگی‌ها (Added)
-- **منطق جامع مدیریت خودکار (`ProcessAutoManagement`):** قابلیت‌های پیشرفته‌ای مانند بستن بخشی از حجم، ریسک-فری کردن خودکار و اجرای قوانین بر اساس درصد سود هدف، به اکسپرت اضافه شد.
-- **پایداری وضعیت حد ضرر (Stop Loss):** حد ضررهای اولیه معاملات در یک فایل `.dat` ذخیره می‌شوند تا در صورت ری‌استارت شدن اکسپرت، اطلاعات از بین نرود.
-
-#### رفع اشکال (Fixed)
-- **رفع باگ `Content-Length`:** مشکل حیاتی که باعث خطای تجزیه JSON در سرور می‌شد، با حذف کاراکتر `\0` از انتهای داده ارسالی به طور کامل حل شد.
+## Changelog
+This version uses a stable architecture based on **Short Polling HTTP**, where the Expert Advisor prevents data transmission interference with an internal queue mechanism.
 
 ---
-### سرور (`server.js`)
 
-#### بهبودها (Changed)
-- **پشتیبانی کامل از دستورات جدید:** سرور برای دریافت و مدیریت تمام دستورات جدید ارسال شده از داشبورد (مانند `update_settings`, `toggle_auto` و...) به‌روزرسانی شد.
-- **دریافت مستقیم JSON:** سرور برای پذیرش مستقیم داده‌های JSON از اکسپرت بهینه شد و دیگر نیازی به تجزیه رشته‌های متنی سفارشی ندارد.
+### [Version 2.5.0] - Stable Polling Architecture with State Management - (Current Date)
 
-#### ویژگی‌ها (Added)
-- **ارتباط دوطرفه با داشبورد:** با استفاده از WebSocket، داده‌های دریافتی از اکسپرت به صورت لحظه‌ای به تمام داشبوردهای متصل ارسال می‌شود.
-- **مدیریت تنظیمات:** یک `endpoint` برای دریافت و به‌روزرسانی تنظیمات مدیریت خودکار از طریق داشبورد اضافه شد.
+This version focuses on connection stability, data corruption prevention, and adding full transaction management logic.
 
 ---
-### داشبورد پایتون (`app.py`)
+### Expert Advisor (`api.c`)
 
-*(این لاگ بر اساس فایل‌های قبلی شماست و با این نسخه از اکسپرت و سرور کاملاً هماهنگ است)*
+#### Improvements (Changed)
+- **Non-blocking data transmission architecture:** To solve the problem of web request interference and data corruption, an internal queue mechanism (`g_data_queue`) and status flag (`g_is_sending`) were implemented. The Expert Advisor now queues data and sends it in a controlled manner.
+- **Full ATM status management:** Full logic for enabling/disabling auto-management for each trade individually (`ToggleAtmForTicket`) has been implemented.
+- **Migration to JSON format:** The data exchange format with the server has been completely changed to standard JSON.
 
-#### بهبودها (Changed)
-- **معماری جدول به `Model/View` تغییر یافت:** برای افزایش عملکرد و پایداری، جدول نمایش معاملات بازنویسی شد.
-- **استایل‌ها به فایل‌های `.qss` منتقل شدند:** برای خوانایی بهتر، کدهای CSS به فایل‌های خارجی منتقل شدند.
+#### Features (Added)
+- **Comprehensive auto-management logic (`ProcessAutoManagement`):** Advanced features such as closing a portion of the volume, automatic risk-freeing, and executing rules based on the target profit percentage have been added to the Expert Advisor.
+- **Stop Loss status persistence:** Initial stop losses of trades are saved in a `.dat` file so that information is not lost when the Expert Advisor is restarted.
 
-#### رفع اشکال (Fixed)
-- **رفع کرش برنامه:** مشکل از کار افتادن برنامه هنگام کلیک روی دکمه "بستن معامله" برطرف شد.
-- **افزودن بازخورد خطا:** اکنون در صورت عدم موفقیت در ارسال دستور، کاربر با یک پیغام خطا مطلع می‌شود.
+#### Bug Fixes (Fixed)
+- **Fixed `Content-Length` bug:** The critical issue that caused JSON parsing error on the server has been completely resolved by removing the `\0` character from the end of the sent data.
+
+---
+### Server (`server.js`)
+
+#### Improvements (Changed)
+- **Full support for new commands:** The server has been updated to receive and handle all new commands sent from the dashboard (such as `update_settings`, `toggle_auto`, etc.).
+- **Direct JSON reception:** The server has been optimized to accept JSON data directly from the expert and no longer needs to parse custom text strings.
+
+#### Features (Added)
+- **Two-way communication with the dashboard:** Using WebSocket, data received from the expert is sent to all connected dashboards in real time.
+- **Settings Management:** An `endpoint` has been added to receive and update the settings of the automated management via the dashboard.
+
+---
+### Python Dashboard (`app.py`)
+
+*(This log is based on your previous files and is fully compatible with this version of the Expert Advisor and the server)*
+
+#### Improvements (Changed)
+- **Table architecture changed to `Model/View`:** The trade display table has been rewritten to increase performance and stability.
+- **Styles moved to `.qss` files:** CSS codes have been moved to external files for better readability.
+
+#### Bug Fixes (Fixed)
+- **App Crash Fix:** The issue of the app crashing when clicking the "Close Trade" button has been fixed.
+- **Error Feedback Added:** Now the user is notified with an error message if the order submission fails.
